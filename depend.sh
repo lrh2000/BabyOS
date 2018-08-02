@@ -13,4 +13,5 @@ IN_DIR=`dirname $IN_FILE`
 mkdir -p $OUT_DIR
 shift 2
 
-$@ -MM -MG $IN_FILE | sed "s@^\(.*\)\\.o:@$OUT_DIR/\\1.o $OUT_DIR/\\1.d:@" > $OUT_FILE
+OBJ_FILE="$OUT_DIR/`basename -s .d $OUT_FILE`.o"
+$@ -MM -MG $IN_FILE -MF $OUT_FILE -MT "$OBJ_FILE $OUT_FILE"

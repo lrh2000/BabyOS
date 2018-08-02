@@ -8,7 +8,7 @@ RM      := rm -rf
 MKDIR   := mkdir -p
 DIRNAME := dirname
 
-SRC      := 
+SRC      :=
 BUILD    := ./.kbuild
 OUTPUT   := ./output
 KERN_LDS := ./kernel.lds
@@ -17,12 +17,12 @@ KERN_ELF := $(OUTPUT)/kernel.elf
 KERNEL   := $(OUTPUT)/kernel
 
 ASFLAGS  := -c -fPIE -ffreestanding -fno-builtin \
-            -nostdlib -nostdinc -I./include 
+            -nostdlib -nostdinc -I./include
 CFLAGS   := -c  ### unused
 CXXFLAGS := -c -ffreestanding -fno-stack-protector -mno-red-zone \
             -fPIE -fno-exceptions -fno-rtti -fno-strict-aliasing \
             -mno-sse -mno-mmx -mno-3dnow -std=c++17 -m64 \
-            -fno-bultin -nostdlib -nostdinc -Wall -Wextra \
+            -fno-builtin -nostdlib -nostdinc -Wall -Wextra \
             -Werror -O0 -I./include -mcmodel=small
 LDFLAGS  := -Wl,-T$(KERN_LDS) -Wl,-Map=$(KERN_MAP) -Wl,--build-id=none \
             -nostdlib -fno-builtin -ffreestanding -fPIE

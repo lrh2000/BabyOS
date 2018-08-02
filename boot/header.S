@@ -1,5 +1,6 @@
   .section ".header","a"
   .extern _end
+  .global _head
 
 _head:
 dos_header:
@@ -89,8 +90,12 @@ __text_start:
 
   .section ".text","ax"
   .code64
+  .extern exec_init_func
   .global efi_entry
 efi_entry:
+  movq %rcx,%rdi
+  movq %rdx,%rsi
+  call exec_init_func
   cli
 0:
   hlt

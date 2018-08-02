@@ -14,11 +14,16 @@ SECTIONS
   .text : AT(ADDR(.text)) {
     *(.text)
   }
-  //. = ALIGN(4K);
+  . = ALIGN(4K);
 
   .data : AT(ADDR(.data)) {
     *(.rodata)
     *(.data)
+
+    . = ALIGN(8);
+    __init_array_start = .;
+    *(.init_array*)
+    __init_array_end = .;
   }
   //. = ALIGN(4K);
 
