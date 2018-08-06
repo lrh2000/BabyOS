@@ -31,7 +31,7 @@ optional_header:
   .word 0x20b                           # Magic (IMAGE_NT_OPTIONAL_HDR64_MAGIC)
   .byte 0x02                            # MajorLinkerVersion
   .byte 0x14                            # MinorLinkerVersion
-  .long _end - __text_start             # SizeOfCode
+  .long __data_end - __text_start       # SizeOfCode
   .long 0                               # SizeOfInitializedData
   .long 0                               # SizeOfUninitializedData
   .long efi_entry - _head               # AddressOfEntry
@@ -46,7 +46,7 @@ optional_header:
   .word 0                               # MajorSubsystemVersion
   .word 0                               # MinorSubsystemVersion
   .long 0                               # Win32VersionValue
-  .long _end - _head                    # SizeOfImage
+  .long __data_end - _head              # SizeOfImage
   .long header_end - dos_header         # SizeOfHeader
   .long 0                               # CheckSum
   .word 0xa                             # Subsystem (IMAGE_SUBSYSTEM_EFI_APPLICATION)
@@ -69,19 +69,34 @@ optional_header:
 section_table:
   # IMAGE_SECTION_HEADER
   .ascii ".text\0\0\0"                  # Name
-  .long _end - __text_start             # VirtualSize
+  .long __data_end - __text_start       # VirtualSize
   .long __text_start - _head            # VirtualAddress
-  .long _end - __text_start             # SizeOfRawData
+  .long __data_end - __text_start       # SizeOfRawData
   .long __text_start - _head            # PointerToRawData
   .long 0                               # PointerToRelocations
   .long 0                               # PointerToLinenumbers
   .word 0                               # NumberOfRelocations
   .word 0                               # NumberOfLinenumbers
-  .long 0x60000020                      # Characteristics
+  .long 0xe0000060                      # Characteristics
                                         # IMAGE_SCN_CNT_CODE
+                                        # IMAGE_SCN_CNT_INITIALIZED_DATA
                                         # IMAGE_SCN_MEM_EXECUTE
                                         # IMAGE_SCN_MEM_READ
-  # TODO: section .data and section .bss
+                                        # IMAGE_SCN_MEM_WRITE
+
+  .ascii ".bss\0\0\0\0"                 # Name
+  .long __bss_size - _head              # VirtualSize
+  .long __bss_start - _head             # VirtualAddress
+  .long 0                               # SizeOfRawData
+  .long 0                               # PointerToRawData
+  .long 0                               # PointerToRelocations
+  .long 0                               # PointerToLinenumbers
+  .word 0                               # NumberOfRelocations
+  .word 0                               # NumberOfLinenumbers
+  .long 0xc0000080                      # Characteristics
+                                        # IMAGE_CNT_UNINITIALIZED_DATA
+                                        # IMAGE_MEM_READ
+                                        # IMAGE_MEM_WRITE
 
 header_end:
 

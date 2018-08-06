@@ -25,12 +25,15 @@ SECTIONS
     *(.init_array*)
     __init_array_end = .;
   }
-  //. = ALIGN(4K);
+  __data_end = .;
+  . = ALIGN(4K);
 
+  __bss_start = .;
   .bss : AT(ADDR(.bss)) {
     *(.bss)
   }
-  //. = ALIGN(4K);
+  . = ALIGN(4K);
+  __bss_size = . - __bss_start;
 
   _end = .;
   /DISCARD/ : {
