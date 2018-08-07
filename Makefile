@@ -33,6 +33,8 @@ include boot/module.mk
 OBJ      := $(patsubst %,$(BUILD)/%.o,$(SRC))
 DEP      := $(patsubst %,$(BUILD)/%.d,$(SRC))
 
+MAKEFLAGS += --silent
+
 .PHONY:first clean veryclean
 
 first: $(KERNEL)
@@ -40,22 +42,34 @@ first: $(KERNEL)
 -include $(DEP)
 
 $(BUILD)/%.cpp.d: %.cpp
+ifeq ($(filter $(MAKECMDGOALS),clean veryclean),)
+	echo DEP $<
 	./depend.sh $@ $< $(CXX) $(CXXFLAGS)
+endif
 $(BUILD)/%.S.d: %.S
+ifeq ($(filter $(MAKECMDGOALS),clean veryclean),)
+	echo DEP $<
 	./depend.sh $@ $< $(AS) $(ASFLAGS)
+endif
 
 $(BUILD)/%.cpp.o: %.cpp
+	echo CXX $<
 	$(CXX) $(CXXFLAGS) -o $@ $<
 $(BUILD)/%.S.o: %.S
+	echo AS $<
 	$(AS) $(ASFLAGS) -o $@ $<
 
 $(KERNEL): $(DEP) $(OBJ) $(KERN_LDS)
 	$(MKDIR) `$(DIRNAME) $(KERNEL)`
+	echo LD $(KERN_ELF)
 	$(LD) $(OBJ) $(LDFLAGS) -o $(KERN_ELF)
+	echo BINARY $(KERNEL)
 	$(OBJCOPY) $(OBJCOPYFLAGS) $(KERN_ELF) $(KERNEL)
 
 clean:
+	echo RM $(BUILD)
 	$(RM) $(BUILD)
 
 veryclean: clean
+	echo RM $(OUTPUT)
 	$(RM) $(OUTPUT)

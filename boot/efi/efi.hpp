@@ -72,7 +72,6 @@ namespace efi
   struct text_output_mode_t;
   struct text_input_proto_t;
   struct config_table_t;
-  struct memory_desc_t;
 
   struct guid_t
   {
@@ -129,7 +128,7 @@ namespace efi
     uint32_t nr_modes;
     uint32_t mode_id;
     graphics_mode_info_t *info;
-    uintptr_t framebuffer_addr;
+    uint64_t framebuffer_addr;
     size_t framebuffer_size;
   };
 
@@ -169,6 +168,16 @@ namespace efi
     PERSISTENT_MEMORY,
   };
 
+  struct memory_desc_t
+  {
+    uint32_t type;
+    uint32_t __align;
+    uint64_t physics_addr;
+    uint64_t virtual_addr;
+    uint64_t nr_pages;
+    uint64_t attributes;
+  };
+
   enum
   {
     OPEN_PROTO_BY_HANDLE_PROTOCOL  = 0x01,
@@ -187,8 +196,8 @@ namespace efi
     EFI_FUNC_PTR(restore_tpl,...);
 
     EFI_FUNC_PTR(allocate_pages,alloc_type_t type,memory_type_t memtype,
-              size_t nr_pages,uintptr_t *memory);
-    EFI_FUNC_PTR(free_pages,uintptr_t memory,size_t nr_pages);
+              size_t nr_pages,uint64_t *memory);
+    EFI_FUNC_PTR(free_pages,uint64_t memory,size_t nr_pages);
     EFI_FUNC_PTR(get_memory_map,size_t *memmap_size,memory_desc_t *memmap,
               size_t *map_key,size_t *desc_size,uint32_t *version);
     EFI_FUNC_PTR(allocate_pool,memory_type_t pooltype,size_t size,void **memory);
@@ -263,7 +272,7 @@ namespace efi
 
     size_t nr_table_entries;
     config_table_t *config_table;
-  } PACKED_STRUCT;
+  };
 
 #undef EFI_FUNC_PTR
 
