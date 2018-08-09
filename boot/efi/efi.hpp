@@ -222,9 +222,10 @@ namespace efi
 
     EFI_FUNC_PTR(load_image,...);
     EFI_FUNC_PTR(start_image,...);
-    EFI_FUNC_PTR(exit,...);
+    EFI_FUNC_PTR(exit,handle_t image_handle,status_t exit_status,
+                    size_t exit_data_size,uint16_t *exit_data);
     EFI_FUNC_PTR(unload_image,...);
-    EFI_FUNC_PTR(exit_boot_services,...);
+    EFI_FUNC_PTR(exit_boot_services,handle_t image_handle,size_t map_key);
 
     EFI_FUNC_PTR(get_next_monotonic_count,...);
     EFI_FUNC_PTR(stall,...);

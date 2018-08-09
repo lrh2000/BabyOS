@@ -16,7 +16,7 @@ pe_header:
 file_header:
   # IMAGE_FILE_HEADER       FileHeader
   .word 0x8664                          # Machine (IMAGE_FILE_MACHINE_AMD64)
-  .word 1                               # NumberOfSections
+  .word 2                               # NumberOfSections
   .long 0                               # TimeDateStamp
   .long 0                               # PointerToSymbolsTable
   .long 0                               # NumberOfSymbols
@@ -46,7 +46,7 @@ optional_header:
   .word 0                               # MajorSubsystemVersion
   .word 0                               # MinorSubsystemVersion
   .long 0                               # Win32VersionValue
-  .long __data_end - _head              # SizeOfImage
+  .long _end - _head                    # SizeOfImage
   .long header_end - dos_header         # SizeOfHeader
   .long 0                               # CheckSum
   .word 0xa                             # Subsystem (IMAGE_SUBSYSTEM_EFI_APPLICATION)
@@ -108,8 +108,8 @@ __text_start:
   .extern exec_init_func
   .global efi_entry
 efi_entry:
-  movq %rcx,%rdi
-  movq %rdx,%rsi
+  movq %rcx,%rsi
+  // movq %rdx,%rdx
   call exec_init_func
   cli
 0:

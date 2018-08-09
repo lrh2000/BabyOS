@@ -18,7 +18,10 @@ exec_init_func:
   incq 0b(%rip)
   movq (%rbx),%rax
   addq %r15,%rax
+  leaq _head(%rip),%rdi
   call *%rax
+  testq %rax,%rax
+  jnz 2f
   addq $8,%rbx
   cmpq %r13,%rbx
   jne 1b
