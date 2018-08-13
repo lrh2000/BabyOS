@@ -23,12 +23,13 @@ CXXFLAGS := -c -ffreestanding -fno-stack-protector -mno-red-zone \
             -fPIE -fno-exceptions -fno-rtti -fno-strict-aliasing \
             -mno-sse -mno-mmx -mno-3dnow -std=c++17 -m64 \
             -fno-builtin -nostdlib -nostdinc -Wall -Wextra \
-            -Werror -O0 -I./include -mcmodel=small
+            -Werror -O3 -I./include -mcmodel=small
 LDFLAGS  := -Wl,-T$(KERN_LDS) -Wl,-Map=$(KERN_MAP) -Wl,--build-id=none \
             -nostdlib -fno-builtin -ffreestanding -fPIE
 OBJCOPYFLAGS  := -O binary
 
 include boot/module.mk
+include kernel/module.mk
 
 OBJ      := $(patsubst %,$(BUILD)/%.o,$(SRC))
 DEP      := $(patsubst %,$(BUILD)/%.d,$(SRC))

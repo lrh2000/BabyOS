@@ -12,17 +12,17 @@ SECTIONS
   . = ALIGN(4K);
 
   .text : AT(ADDR(.text)) {
-    *(.text)
+    *(.text*)
   }
   . = ALIGN(4K);
 
   .data : AT(ADDR(.data)) {
-    *(.rodata)
+    *(.rodata*)
     *(.data)
 
     . = ALIGN(8);
     __init_array_start = .;
-    *(.init_array*)
+    *(SORT(.init_array.*))
     __init_array_end = .;
   }
   __data_end = .;

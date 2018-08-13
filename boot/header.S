@@ -1,5 +1,6 @@
   .section ".header","a"
   .extern _end
+  .extern efi_entry
   .global _head
 
 _head:
@@ -102,16 +103,3 @@ header_end:
 
 .align 0x1000
 __text_start:
-
-  .section ".text","ax"
-  .code64
-  .extern exec_init_func
-  .global efi_entry
-efi_entry:
-  movq %rcx,%rsi
-  // movq %rdx,%rdx
-  call exec_init_func
-  cli
-0:
-  hlt
-  jmp 0b

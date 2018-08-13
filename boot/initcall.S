@@ -4,6 +4,24 @@
   .extern __init_array_start
   .extern __init_array_end
   .global exec_init_func
+  .global efi_entry
+
+efi_entry:
+  movq %rcx,%rsi
+  // movq %rdx,%rdx
+  call exec_init_func
+die:
+  cli
+0:
+  hlt
+  jmp 0b
+
+setup_stack:
+  leaq stack_top(%rip),%rsp
+  call exec_init_func
+  jmp die
+
+  .align 8
 0:.quad 0
 exec_init_func:
   leaq 0b(%rip),%r15
@@ -28,3 +46,11 @@ exec_init_func:
 2:
   retq
 
+  .section ".bss","aw"
+  .align 8
+  .skip 0x1000
+stack_top:
+
+  .section ".init_array.00102","aw"
+  .align 8
+  .quad setup_stack

@@ -226,14 +226,8 @@ namespace efi
                                             size_t len,size_t desc_size)
   {
     auto &meminfo = bootinfo->memory;
-    meminfo.nr_regions = 0;
-    meminfo.usable_mem = (boot::memory_region_t *)bootinfo->tail;
+    size_t rest = meminfo.begin_mem_add(*bootinfo);
 
-    size_t rest = (uint8_t *)bootinfo->tail - (uint8_t *)bootinfo;
-    rest = bootinfo_t::MAX_SIZE - rest;
-    rest /= sizeof(meminfo.usable_mem[0]);
-
-    size_t i;
     while(len--)
     {
       switch(memmap->type)
@@ -247,39 +241,19 @@ namespace efi
         goto next;
       }
 
-      for(i = meminfo.nr_regions - 1;~i;--i)
-      {
-        if(meminfo.usable_mem[i].end_address + 1 < memmap->physics_addr)
-          break;
-        if(meminfo.usable_mem[i].end_address + 1 > memmap->physics_addr)
-          continue;
-        meminfo.usable_mem[i].end_address += memmap->nr_pages << 12;
-        goto next;
-      }
-
-      if(!rest) {
+      meminfo.add_usable_mem(memmap->physics_addr,
+          memmap->physics_addr + (memmap->nr_pages << 12) - 1,rest);
+      if(!~rest) {
         print("[ERROR] Out of memory for the boot information.\n\r");
         return ERR_OUT_OF_RESOURCES;
       }
 
-      for(i = meminfo.nr_regions - 1;~i;--i)
-      {
-        if(meminfo.usable_mem[i].end_address + 1 < memmap->physics_addr)
-          break;
-        meminfo.usable_mem[i + 1] = meminfo.usable_mem[i];
-      }
-      --rest;
-      ++i;
-      ++meminfo.nr_regions;
-
-      meminfo.usable_mem[i].start_address = memmap->physics_addr;
-      meminfo.usable_mem[i].end_address = memmap->physics_addr + (memmap->nr_pages << 12) - 1;
-
 next:
+      meminfo.update_max_address(memmap->physics_addr + (memmap->nr_pages << 12) - 1);
       memmap = (memory_desc_t *)((uint8_t *)memmap + desc_size);
     }
 
-    bootinfo->tail = (void *)(meminfo.usable_mem + meminfo.nr_regions);
+    meminfo.end_mem_add(*bootinfo);
     return SUCCESS;
   }
 

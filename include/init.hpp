@@ -5,11 +5,14 @@ namespace init_order
 {
   namespace boot
   {
-    static constexpr uint16_t EFI = 101;
+    enum { EFI   = 101 };
+    enum { STACK = 102 };
   }
 
   namespace kernel
   {
+    enum { CPU_GDT    = 1000 };
+    enum { MEM_PAGING = 1001 };
   }
 
   namespace fs
