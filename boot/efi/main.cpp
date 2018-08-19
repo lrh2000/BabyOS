@@ -227,16 +227,26 @@ namespace efi
   {
     auto &meminfo = bootinfo->memory;
     size_t rest = meminfo.begin_mem_add(*bootinfo);
+    uintptr_t bootmem_addr = 0,kernel_addr = 0;
+    size_t bootmem_nr_pages = 0,kernel_size = 0;
 
     while(len--)
     {
       switch(memmap->type)
       {
       case CONVENTIONAL_MEMORY:
+        if(memmap->nr_pages < bootmem_nr_pages)
+          break;
+        bootmem_nr_pages = memmap->nr_pages;
+        bootmem_addr = memmap->physics_addr;
+        break;
       case BOOT_SERVICES_CODE:
       case BOOT_SERVICES_DATA:
       case LOADER_DATA:
         break;
+      case LOADER_CODE:
+        kernel_addr = memmap->physics_addr;
+        kernel_size = memmap->nr_pages << 12;
       default:
         goto next;
       }
@@ -253,7 +263,8 @@ next:
       memmap = (memory_desc_t *)((uint8_t *)memmap + desc_size);
     }
 
-    meminfo.end_mem_add(*bootinfo);
+    meminfo.end_mem_add(*bootinfo,bootmem_addr,bootmem_nr_pages << 12,
+                                        kernel_addr,kernel_size);
     return SUCCESS;
   }
 

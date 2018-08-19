@@ -29,7 +29,7 @@ namespace boot
         break;
       if(usable_mem[i].end_address + 1 > start_addr)
         continue;
-      usable_mem[i].end_address += end_addr - start_addr;
+      usable_mem[i].end_address += end_addr - start_addr + 1;
       return;
     }
 
@@ -49,31 +49,48 @@ namespace boot
     usable_mem[i].end_address = end_addr;
   }
 
-  void memory_map_t::end_mem_add(bootinfo_t &bootinfo)
+  void memory_map_t::end_mem_add(bootinfo_t &bootinfo,
+            uintptr_t bm_addr,size_t bm_size,uintptr_t kern_addr,size_t kern_size)
   {
     bootinfo.tail = (void *)(usable_mem + nr_regions);
+
+    bootmem_addr = bm_addr;
+    if(bm_size > ~(uint32_t)0)
+      bootmem_size = ~(uint32_t)0;
+    else
+      bootmem_size = bm_size;
+    bootmem_used_size = 0;
+
+    kernel_addr = kern_addr;
+    kernel_size = kern_size;
   }
 
-  uintptr_t memory_map_t::allocate(size_t size)
+  void memory_map_t::parse_usable_mem(void (*func)(uintptr_t addr,size_t size))
   {
-    memory_region_t *region = nullptr;
-    size_t min_size = 0;
-    min_size = ~min_size;
+    uintptr_t now = 0;
+    size_t i = 0;
 
-    for(size_t i = 0;i < nr_regions;++i)
+    while(i < nr_regions)
     {
-      size_t tmp = usable_mem[i].end_address - usable_mem[i].start_address + 1;
-      if(tmp < size)
-        continue;
-      if(tmp > min_size)
-        continue;
-      region = usable_mem + i;
-      min_size = tmp;
-    }
+      uintptr_t start = usable_mem[i].start_address;
+      uintptr_t end = usable_mem[i].end_address;
 
-    if(!region)
-      return 0;
-    region->start_address += size;
-    return region->start_address - size;
+      if(now > start)
+        start = now;
+      if(start > end) {
+        ++i;
+        continue;
+      }
+      now = end + 1;
+
+      if(kernel_addr < end && kernel_addr >= start)
+        end = kernel_addr - 1,now = kernel_addr + kernel_size;
+      if(bootmem_addr < end && bootmem_addr >= start)
+        end = bootmem_addr - 1,now = bootmem_addr + bootmem_used_size;
+      if(start > end)
+        continue;
+
+      (*func)(start,end - start + 1);
+    }
   }
 }

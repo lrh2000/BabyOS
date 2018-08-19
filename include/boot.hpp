@@ -26,10 +26,20 @@ namespace boot
     memory_region_t *usable_mem;
     uintptr_t max_address;
 
+    uintptr_t bootmem_addr;
+    uint32_t bootmem_size;
+    uint32_t bootmem_used_size;
+
+    uintptr_t kernel_addr;
+    uint32_t kernel_size;
+
 public:
     size_t begin_mem_add(bootinfo_t &bootinfo);
     void add_usable_mem(uintptr_t start_addr,uintptr_t end_addr,size_t &rest);
-    void end_mem_add(bootinfo_t &bootinfo);
+    void end_mem_add(bootinfo_t &bootinfo,
+            uintptr_t bm_addr,size_t bm_size,uintptr_t kern_addr,size_t kern_size);
+
+    void parse_usable_mem(void (*func)(uintptr_t addr,size_t size));
 
     inline void update_max_address(uintptr_t addr)
     {
@@ -41,7 +51,15 @@ public:
       return max_address;
     }
 
-    uintptr_t allocate(size_t size);
+    inline uintptr_t allocate(size_t size)
+    {
+      if(bootmem_used_size + size < bootmem_used_size)
+        return 0;
+      if(bootmem_used_size + size > bootmem_size)
+        return 0;
+      bootmem_used_size += size;
+      return bootmem_addr + bootmem_used_size - size;
+    }
   };
 }
 

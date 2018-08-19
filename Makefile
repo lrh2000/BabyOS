@@ -21,7 +21,7 @@ ASFLAGS  := -c -fPIE -ffreestanding -fno-builtin \
 CFLAGS   := -c  ### unused
 CXXFLAGS := -c -ffreestanding -fno-stack-protector -mno-red-zone \
             -fPIE -fno-exceptions -fno-rtti -fno-strict-aliasing \
-            -mno-sse -mno-mmx -mno-3dnow -std=c++17 -m64 \
+            -mno-sse -mno-mmx -mno-3dnow -std=gnu++17 -m64 \
             -fno-builtin -nostdlib -nostdinc -Wall -Wextra \
             -Werror -O3 -I./include -mcmodel=small
 LDFLAGS  := -Wl,-T$(KERN_LDS) -Wl,-Map=$(KERN_MAP) -Wl,--build-id=none \

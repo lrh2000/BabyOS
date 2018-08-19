@@ -11,8 +11,10 @@ namespace init_order
 
   namespace kernel
   {
-    enum { CPU_GDT    = 1000 };
-    enum { MEM_PAGING = 1001 };
+    enum { CPU_GDT     = 1000 };
+    enum { MEM_PAGING  = 1001 };
+    enum { MEM_MMPAGES = 1002 };
+    enum { MEM_MMALLOC = 1003 };
   }
 
   namespace fs
