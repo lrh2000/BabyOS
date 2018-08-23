@@ -95,7 +95,7 @@ namespace mm_pages
   {
     auto phys = addr_virt2phys((virtaddr_t)x);
     clear_page_bit(phys + ((x->nr_pages - nr_pages) << PAGE_SHIFT));
-    clear_page_bit(phys + ((nr_pages - 1) << PAGE_SHIFT));
+    clear_page_bit(phys + ((x->nr_pages - 1) << PAGE_SHIFT));
 
     x->dtor();
     if(x->nr_pages == nr_pages)
@@ -165,13 +165,17 @@ void dealloc_pages(void *pages,size_t nr_pages)
   if(get_page_bit(phys - PAGE_SIZE)) {
     auto end = (free_pages_end_t *)((uint8_t *)pages - sizeof(free_pages_end_t));
     auto start = end->start;
-    start->dtor();
+
+    clear_page_bit(phys - PAGE_SIZE);
     pages = start;
-    nr_pages += start->nr_pages;
     phys = addr_virt2phys((virtaddr_t)pages);
+    nr_pages += start->nr_pages;
+    start->dtor();
   }
   if(get_page_bit(phys + (nr_pages << PAGE_SHIFT))) {
     auto start = (free_pages_start_t *)((uint8_t *)pages + (nr_pages << PAGE_SHIFT));
+
+    clear_page_bit(phys + (nr_pages << PAGE_SHIFT));
     nr_pages += start->nr_pages;
     start->dtor();
   }

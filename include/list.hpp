@@ -1,4 +1,5 @@
 #pragma once
+#include <env.hpp>
 
 class list_node_t
 {
@@ -78,5 +79,10 @@ public:
     if(node == this)
       return nullptr;
     return (T *)((uintptr_t)node - T_OFFSET_INT());
+  }
+
+  inline bool empty(void)
+  {
+    return _next == this;
   }
 };
