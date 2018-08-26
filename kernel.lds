@@ -18,12 +18,17 @@ SECTIONS
 
   .data : AT(ADDR(.data)) {
     *(.rodata*)
-    *(.data)
+    *(.data*)
 
     . = ALIGN(8);
     __init_array_start = .;
     *(SORT(.init_array.*))
     __init_array_end = .;
+
+    . = ALIGN(8);
+    __rela_start = .;
+    *(.rela.*)
+    __rela_end = .;
   }
   __data_end = .;
   . = ALIGN(4K);

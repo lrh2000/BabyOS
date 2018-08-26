@@ -50,9 +50,12 @@ namespace efi
 
   static status_t fill_graphics_info(bootinfo_t *bootinfo)
   {
+    using boot::pixel_format_t;
+
     graphics_output_proto_t *graphics;
     status_t status;
-    bool flag = true;
+    bool unsupported = true;
+    pixel_format_t px_format = pixel_format_t::PIXEL32_BGR;
 
     status = (*boot_services->open_protocol)(system_table->con_out_handle,&graphics_output_guid,
         (void **)&graphics,image_handle,nullptr,OPEN_PROTO_BY_HANDLE_PROTOCOL);
@@ -79,10 +82,12 @@ namespace efi
     {
     case PIXEL_RGB:
       print("RGB");
+      unsupported = false;
+      px_format = pixel_format_t::PIXEL32_RGB;
       break;
     case PIXEL_BGR:
       print("BGR");
-      flag = false;
+      unsupported = false;
       break;
     case PIXEL_BITMASK:
       print("Bit Mask");
@@ -100,13 +105,14 @@ namespace efi
     bootinfo->video.height = info->height;
     bootinfo->video.vram_width = info->scanline_pixels;
     bootinfo->video.vram_address = graphics->mode->framebuffer_addr;
+    bootinfo->video.pixel_format = px_format;
 
     status = (*boot_services->close_protocol)(system_table->con_out_handle,
         &graphics_output_guid,image_handle,nullptr);
     if(status_error(status))
       print("[WRAN ] Failed to call close_protocol.\n\r");
 
-    if(flag) {
+    if(unsupported) {
       print("[ERROR] This pixel format has not been suported yet.\n\r");
       return ERR_UNSUPPORTED;
     }

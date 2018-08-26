@@ -1,17 +1,19 @@
 #pragma once
 #include <env.hpp>
+#include <video.hpp>
 
 struct bootinfo_t;
 
 namespace boot
 {
+  using pixel_format_t = framebuffer_t::pixel_format_t;
   struct video_info_t
   {
     uint32_t height;
     uint32_t width;
     uint32_t vram_width;
-    //framebuffer_t::pixel_format_t pixel_format;
     uintptr_t vram_address;
+    pixel_format_t pixel_format;
   };
 
   struct memory_region_t

@@ -16,8 +16,12 @@ namespace paging
   static int setup_paging(bootinfo_t *bootinfo)
   {
     auto max_addr = bootinfo->memory.get_max_address();
+    if(max_addr < ~(uint32_t)0)
+      max_addr = ~(uint32_t)0;
 
     auto pgd = (uint64_t *)bootinfo->memory.allocate(0x1000);
+    if(!pgd)
+      return -1;
     for(int pgd_idx = 0;pgd_idx < 512;++pgd_idx)
     {
       size_t pgd_addr = pgd_idx;
@@ -30,6 +34,8 @@ namespace paging
 
       pgd[pgd_idx] = bootinfo->memory.allocate(0x1000);
       auto pud = (uint64_t *)pgd[pgd_idx];
+      if(!pud)
+        return -1;
       pgd[pgd_idx] |= ATTR_KERNEL;
       for(int pud_idx = 0;pud_idx < 512;++pud_idx)
       {
@@ -44,6 +50,8 @@ namespace paging
 
         pud[pud_idx] = bootinfo->memory.allocate(0x1000);
         auto pmd = (uint64_t *)pud[pud_idx];
+        if(!pmd)
+          return -1;
         pud[pud_idx] |= ATTR_KERNEL;
         for(int pmd_idx = 0;pmd_idx < 512;++pmd_idx)
         {
@@ -58,6 +66,8 @@ namespace paging
 
           pmd[pmd_idx] = bootinfo->memory.allocate(0x1000);
           auto pte = (uint64_t *)pmd[pmd_idx];
+          if(!pte)
+            return -1;
           pmd[pmd_idx] |= ATTR_KERNEL;
           for(int pte_idx = 0;pte_idx < 512;++pte_idx)
           {

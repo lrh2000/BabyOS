@@ -128,6 +128,7 @@ namespace efi
     uint32_t nr_modes;
     uint32_t mode_id;
     graphics_mode_info_t *info;
+    size_t info_size;
     uint64_t framebuffer_addr;
     size_t framebuffer_size;
   };
