@@ -16,6 +16,8 @@ namespace init_order
     enum { MEM_MMPAGES = 1002 };
     enum { MEM_MMALLOC = 1003 };
     enum { VIDEO_FB    = 1004 };
+    enum { VIDEO_CON   = 1005 };
+    enum { DEBUG_LOG   = 1006 };
   }
 
   namespace fs

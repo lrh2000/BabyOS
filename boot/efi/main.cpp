@@ -101,11 +101,12 @@ namespace efi
     }
     print("\n\r");
 
-    bootinfo->video.width = info->width;
-    bootinfo->video.height = info->height;
-    bootinfo->video.vram_width = info->scanline_pixels;
-    bootinfo->video.vram_address = graphics->mode->framebuffer_addr;
-    bootinfo->video.pixel_format = px_format;
+    auto &video = bootinfo->video.early;
+    video.width = info->width;
+    video.height = info->height;
+    video.vram_width = info->scanline_pixels;
+    video.vram_address = graphics->mode->framebuffer_addr;
+    video.pixel_format = px_format;
 
     status = (*boot_services->close_protocol)(system_table->con_out_handle,
         &graphics_output_guid,image_handle,nullptr);

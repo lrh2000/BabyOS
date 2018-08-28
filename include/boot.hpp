@@ -3,17 +3,25 @@
 #include <video.hpp>
 
 struct bootinfo_t;
+class console_t;
 
 namespace boot
 {
   using pixel_format_t = framebuffer_t::pixel_format_t;
-  struct video_info_t
+
+  struct video_early_info_t
   {
     uint32_t height;
     uint32_t width;
     uint32_t vram_width;
     uintptr_t vram_address;
     pixel_format_t pixel_format;
+  };
+
+  struct video_info_t
+  {
+    framebuffer_t *fb;
+    console_t *console;
   };
 
   struct memory_region_t
@@ -67,7 +75,10 @@ public:
 
 struct bootinfo_t
 {
-  boot::video_info_t video;
+  union {
+    boot::video_early_info_t early;
+    boot::video_info_t info;
+  } video;
   boot::memory_map_t memory;
 
   void *tail;
