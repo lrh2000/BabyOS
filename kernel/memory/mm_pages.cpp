@@ -3,6 +3,7 @@
 #include <memory.hpp>
 #include <list.hpp>
 #include <init.hpp>
+#include <debug.hpp>
 
 namespace mm_pages
 {
@@ -129,6 +130,8 @@ namespace mm_pages
       new(free_pages + i) typeof(free_pages[i]);
 
     bootinfo->memory.parse_usable_mem(&parse_usable_mem);
+
+    log_t()<<"Initialize the memory management of pages successfully.\n";
 
     return 0;
   }

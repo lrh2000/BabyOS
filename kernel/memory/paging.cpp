@@ -1,6 +1,7 @@
 #include <env.hpp>
 #include <init.hpp>
 #include <boot.hpp>
+#include <debug.hpp>
 
 namespace paging
 {
@@ -86,6 +87,8 @@ namespace paging
 
     kernel_pgd = pgd;
     asm volatile("movq %0,%%cr3" : : "r"(pgd) : "memory");
+
+    log_t()<<"Initialize the kernel page tables successfully.\n";
 
     return 0;
   }

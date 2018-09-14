@@ -2,6 +2,7 @@
 #include <memory.hpp>
 #include <list.hpp>
 #include <init.hpp>
+#include <debug.hpp>
 
 basic_allocator_t::basic_allocator_t(size_t size)
 {
@@ -174,6 +175,8 @@ namespace mm_alloc
       new(allocators + sizeof(basic_allocator_t) * i)
               basic_allocator_t(allocators_size[i]);
     }
+
+    log_t()<<"Initialize the memory management of small memory regions successfully.\n";
 
     void *test1 = malloc(32);
     void *test2 = malloc(19);

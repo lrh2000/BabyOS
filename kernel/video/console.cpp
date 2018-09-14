@@ -1,6 +1,7 @@
 #include <video.hpp>
 #include <init.hpp>
 #include <boot.hpp>
+#include <debug.hpp>
 
 using fb_pixel_t = framebuffer_t::pixel_t;
 
@@ -142,8 +143,9 @@ namespace console
     }
 
     console->print("Initialize the kernel console successfully!\n");
-    console->print("Hello,world!\n");
     console->update();
+
+    log_t()<<"Initialize the kernel console successfully.\n";
 
     return 0;
   }

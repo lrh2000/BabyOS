@@ -1,5 +1,6 @@
 #include <env.hpp>
 #include <init.hpp>
+#include <debug.hpp>
 
 namespace gdt
 {
@@ -45,6 +46,8 @@ namespace gdt
       : "m"(desc_table_reg),"i"(KERNEL_CS),"i"(KERNEL_DS)
       : "rax"
     );
+
+    log_t()<<"Initialize the CPU's GDT successfully.\n";
 
     return 0;
   }

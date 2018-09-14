@@ -3,6 +3,7 @@
 #include <memory.hpp>
 #include <init.hpp>
 #include <video.hpp>
+#include <debug.hpp>
 
 namespace framebuffer
 {
@@ -156,6 +157,8 @@ namespace framebuffer
     }
 
     bootinfo->video.info.fb = fb;
+
+    log_t()<<"Initialize the video framebuffer successfully.\n";
 
     return 0;
   }
