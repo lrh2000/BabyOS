@@ -14,6 +14,20 @@ log_t &log_t::operator <<(const char *s)
   return *this;
 }
 
+log_t &log_t::operator <<(unsigned long num)
+{
+  char s[21];
+  int i = 20;
+  int figure = this->width;
+
+  s[i--] = 0;
+  do
+    ((s[i--] = num % base + '0') <= '9') ? 0 : (s[i + 1] += 'A' - '0' - 10);
+  while((num /= base) | (figure && --figure));
+
+  return *this<<s + i + 1;
+}
+
 void log_t::set_console(console_t *console)
 {
   log_t::console = console;

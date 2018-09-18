@@ -2,8 +2,6 @@
 #include <boot.hpp>
 #include "efi.hpp"
 
-extern void *_head;
-
 namespace efi
 {
   const guid_t graphics_output_guid =

@@ -18,6 +18,8 @@ namespace init_order
     enum { VIDEO_FB    = 1004 };
     enum { VIDEO_CON   = 1005 };
     enum { DEBUG_LOG   = 1006 };
+
+    enum { CPU_IDT     = 1007 };
   }
 
   namespace fs
