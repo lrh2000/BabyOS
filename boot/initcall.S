@@ -7,6 +7,7 @@
   .extern __rela_end
   .global exec_init_func
   .global efi_entry
+  .global __cxa_pure_virtual
 
 efi_entry:
   movq %rcx,%rsi
@@ -73,6 +74,9 @@ setup_kernel_image:
 
   callq exec_init_func
 3:
+  jmp die
+
+__cxa_pure_virtual:
   jmp die
 
   .section ".bss","aw"

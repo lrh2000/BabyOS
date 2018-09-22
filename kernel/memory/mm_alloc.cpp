@@ -1,8 +1,11 @@
 #include <env.hpp>
-#include <memory.hpp>
 #include <list.hpp>
 #include <init.hpp>
 #include <debug.hpp>
+
+#define NO_INLINE_NEW_DELETE
+#include <memory.hpp>
+#undef NO_INLINE_NEW_DELETE
 
 basic_allocator_t::basic_allocator_t(size_t size)
 {

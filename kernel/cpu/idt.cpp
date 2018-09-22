@@ -2,6 +2,7 @@
 #include <init.hpp>
 #include <debug.hpp>
 #include "gdt.hpp"
+#include "idt.hpp"
 
 extern "C" void exception_entry_0(void);
 extern "C" void exception_entry_1(void);
@@ -38,17 +39,6 @@ extern "C" void exception_entry_31(void);
 
 namespace idt
 {
-  enum : uint64_t
-  {
-    TRAP_GATE = 0x00000f0000000000,
-    INTR_GATE = 0x00000e0000000000,
-  };
-  enum : uint64_t
-  {
-    KERN_GATE = 0x0000000000000000,
-    USER_GATE = 0x0000600000000000,
-  };
-
   struct entry_t
   {
     uint64_t lower_data;
@@ -71,6 +61,7 @@ namespace idt
 
   static entry_t desc_table[64];
   static uint8_t desc_table_reg[10];
+  static unsigned int nr_used_entries;
 
   static int setup_idt(void) INIT_FUNC(kernel,CPU_IDT);
 
@@ -108,6 +99,7 @@ namespace idt
     desc_table[29].set((uint64_t)&exception_entry_29,KERN_GATE | TRAP_GATE);
     desc_table[30].set((uint64_t)&exception_entry_30,KERN_GATE | TRAP_GATE);
     desc_table[31].set((uint64_t)&exception_entry_31,KERN_GATE | TRAP_GATE);
+    nr_used_entries = 32;
 
     *(uint16_t *)&desc_table_reg[0] = sizeof(desc_table) - 1;
     *(uint64_t *)&desc_table_reg[2] = (uint64_t)desc_table;
@@ -120,27 +112,18 @@ namespace idt
     );
     log_t()<<"Initialize the CPU's IDT successfully.\n";
 
-    asm volatile(
-      "xorq %%rax,%%rax\n\t"
-      "xorq %%rbx,%%rbx\n\t"
-      "xorq %%rcx,%%rcx\n\t"
-      "xorq %%rdx,%%rdx\n\t"
-      "xorq %%rsi,%%rsi\n\t"
-      "xorq %%rdi,%%rdi\n\t"
-      "xorq %%r8,%%r8\n\t"
-      "xorq %%r9,%%r9\n\t"
-      "xorq %%r10,%%r10\n\t"
-      "xorq %%r11,%%r11\n\t"
-      "xorq %%r12,%%r12\n\t"
-      "xorq %%r13,%%r13\n\t"
-      "xorq %%r14,%%r14\n\t"
-      "xorq %%r15,%%r15\n\t"
-      "ud2\n\t"
-      :
-      :
-      :
-    );
-
     return 0;
+  }
+
+
+  unsigned int get_free_entry(uint64_t offset,uint64_t attributes)
+  {
+    while(nr_used_entries < sizeof(desc_table) / sizeof(desc_table[0]) &&
+        desc_table[nr_used_entries].present())
+      ++nr_used_entries;
+    if(nr_used_entries >= sizeof(desc_table) / sizeof(desc_table[0]))
+      return ~0u;
+    desc_table[nr_used_entries].set(offset,attributes);
+    return nr_used_entries++;
   }
 }

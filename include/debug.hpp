@@ -31,8 +31,12 @@ public:
       update();
   }
 
+  void hex(void);
+  void hex64(void);
+
   log_t &operator <<(setw_t width) { this->width = width.width;return *this; }
   log_t &operator <<(setbase_t base) { this->base = base.base;return *this; }
+  log_t &operator <<(void (log_t::*func)(void)) { (this->*func)();return *this; }
 
   log_t &operator <<(const char *s);
   log_t &operator <<(unsigned long num);
@@ -61,3 +65,6 @@ private:
     "Kernel Log(FATAL):",
   };
 };
+
+inline void log_t::hex(void) { *this<<setbase(16); }
+inline void log_t::hex64(void) { *this<<setbase(16)<<setw(16); }

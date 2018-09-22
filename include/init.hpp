@@ -20,6 +20,8 @@ namespace init_order
     enum { DEBUG_LOG   = 1006 };
 
     enum { CPU_IDT     = 1007 };
+    enum { IRQ_LAPIC   = 1008 };
+    enum { IRQ_IOAPIC  = 1009 };
   }
 
   namespace fs

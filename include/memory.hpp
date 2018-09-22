@@ -8,12 +8,12 @@ enum : size_t { PAGE_SIZE   = 0x1000 };
 enum : size_t { PAGE_SHIFT  = 12     };
 enum : size_t { PAGE_OFFSET = 0      };
 
-static inline physaddr_t addr_virt2phys(virtaddr_t addr)
+inline physaddr_t addr_virt2phys(virtaddr_t addr)
 {
   return addr - PAGE_OFFSET;
 }
 
-static inline virtaddr_t addr_phys2virt(physaddr_t addr)
+inline virtaddr_t addr_phys2virt(physaddr_t addr)
 {
   return addr + PAGE_OFFSET;
 }
@@ -23,6 +23,10 @@ void dealloc_pages(void *pages,size_t nr_pages);
 
 void *malloc(size_t size);
 void free(void *data);
+
+#ifdef NO_INLINE_NEW_DELETE
+#define inline /* Nothing here. */
+#endif
 
 inline void *operator new(size_t,void *data)
 {
@@ -45,6 +49,10 @@ inline void operator delete(void *,void *)
 {
   // Nothing to do.
 }
+
+#ifdef NO_INLINE_NEW_DELETE
+#undef inline
+#endif
 
 class basic_allocator_t
 {
