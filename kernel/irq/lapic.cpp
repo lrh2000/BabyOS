@@ -11,7 +11,9 @@ namespace local_apic
   enum
   {
     REG_EOI                = 0x0b0,
-    REG_SPURIOUS_INTR      = 0x0e0,
+    REG_LOGICAL_DEST       = 0x0d0,
+    REG_DEST_FORMAT        = 0x0e0,
+    REG_SPURIOUS_INTR      = 0x0f0,
     REG_TIMER_INTR         = 0x320,
     REG_TIMER_INITIAL_CNT  = 0x380,
     REG_TIMER_CURRENT_CNT  = 0x390,
@@ -20,9 +22,19 @@ namespace local_apic
   enum : uint32_t
   {
     SOFTWARE_ENABLE = 0x00000100,
-    ONESHOT_TIMER   = 0x00000000,
-    PERIODIC_TIMER  = 0x00020000,
+
+    TIMER_ONESHOT   = 0x00000000,
+    TIMER_PERIODIC  = 0x00020000,
+
+    INTR_MASKED     = 0x00010000,
+
+    DFR_FLAT_MODEL    = 0xffffffff,
+    DFR_CLUSTER_MODEL = 0x0fffffff,
   };
+  static inline constexpr uint32_t LDR_LOGICAL_ID(uint8_t lapic)
+  {
+    return (uint32_t)lapic << 24;
+  }
 
   static uintptr_t mmio_address;
 
@@ -60,7 +72,7 @@ namespace local_apic
     volatile bool flag;
   public:
     local_timer_irq_t(void)
-      :irq_handler_t(irq::LOCAL_TIMER),flag(false)
+      :irq_handler_t(-irq::LOCAL_TIMER),flag(false)
     {}
 
     virtual bool handle(void) override
@@ -84,11 +96,13 @@ namespace local_apic
       log_t(log_t::ERROR)<<"Failed to initialize the local APIC,which has been disabled.\n";
       return -1;
     }
+    log_t()<<"Detected this CPU's local APIC,MMIO address:0x"
+           <<&log_t::hex64<<mmio_address<<".\n";
 
     writel(SOFTWARE_ENABLE,REG_SPURIOUS_INTR);
 
     auto no_intr = idt::get_free_entry((uint64_t)irq_entry_table[irq::LOCAL_TIMER]);
-    writel(PERIODIC_TIMER | no_intr,REG_TIMER_INTR);
+    writel(TIMER_PERIODIC | no_intr,REG_TIMER_INTR);
 
     static uint8_t buffer[sizeof(local_timer_irq_t)];
     local_timer_irq_t *timer = new(buffer) local_timer_irq_t;

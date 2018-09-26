@@ -81,6 +81,8 @@ struct bootinfo_t
   } video;
   boot::memory_map_t memory;
 
+  uintptr_t acpi_rsdp;
+
   void *tail;
 
   enum { MAX_SIZE = 0x1000 };

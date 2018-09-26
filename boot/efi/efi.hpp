@@ -79,6 +79,15 @@ namespace efi
     uint16_t data2;
     uint16_t data3;
     uint8_t data4[8];
+
+    bool operator ==(const guid_t &that) {
+      auto a = (uint64_t *)this;
+      auto b = (uint64_t *)&that;
+      return a[0] == b[0] && a[1] == b[1];
+    }
+    bool operator !=(const guid_t &that) {
+      return !(*this == that);
+    }
   };
 
   struct text_output_proto_t
@@ -252,6 +261,12 @@ namespace efi
     EFI_FUNC_PTR(copy_memory,...);
     EFI_FUNC_PTR(set_memory,...);
     EFI_FUNC_PTR(create_event_extended,...);
+  };
+
+  struct config_table_t
+  {
+    guid_t guid;
+    void *table;
   };
 
   struct system_table_t

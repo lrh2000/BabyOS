@@ -14,11 +14,14 @@ irq_handler_t::~irq_handler_t(void)
 
 bool irq_handler_t::enroll(void)
 {
-  if(this->irq >= ::irq::TOTAL)
+  if(this->irq > ::irq::IOAPIC_END)
     return false;
-  if(irq::handlers[this->irq])
+  if(this->irq < 0 && (-this->irq <= ::irq::IOAPIC_END || -this->irq >= ::irq::TOTAL))
     return false;
-  irq::handlers[this->irq] = this;
+  irq_t real_irq = this->irq >= 0 ? irq : -irq;
+  if(irq::handlers[real_irq])
+    return false;
+  irq::handlers[real_irq] = this;
   registered = true;
   return true;
 }
@@ -27,7 +30,8 @@ void irq_handler_t::unenroll(void)
 {
   if(!registered)
     return;
-  irq::handlers[this->irq] = nullptr;
+  irq_t real_irq = this->irq >= 0 ? irq : -irq;
+  irq::handlers[real_irq] = nullptr;
 }
 
 extern "C" void do_interrupt(intr_stack_t *data)

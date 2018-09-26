@@ -1,3 +1,4 @@
+#pragma once
 #include <env.hpp>
 
 namespace gdt

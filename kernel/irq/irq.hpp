@@ -1,3 +1,5 @@
+#pragma once
+
 namespace irq
 {
   enum { TOTAL = 25 };

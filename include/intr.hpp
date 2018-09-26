@@ -12,7 +12,9 @@ struct intr_stack_t
   uint64_t rsp,ss;
 };
 
-typedef unsigned int irq_t;
+typedef signed int irq_t;
+  // >=0 for Global System Interrupt
+  // <0  for OS-defined IRQ (such as the local APIC timer IRQ)
 
 class irq_handler_t
 {
@@ -24,6 +26,8 @@ public:
   void unenroll(void);
 
   virtual bool handle(void) = 0;
+
+  //static irq_t isa_legacy_irq(irq_t irq);
 private:
   irq_t irq;
   bool registered;

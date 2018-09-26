@@ -6,6 +6,11 @@ namespace efi
 {
   const guid_t graphics_output_guid =
       {0x9042a9de,0x23dc,0x4a38,{0x96,0xfb,0x7a,0xde,0xd0,0x80,0x51,0x6a}};
+
+  const guid_t acpi2_rsdp_guid =
+      {0x8868e871,0xe4f1,0x11d3,{0xbc,0x22,0x00,0x80,0xc7,0x3c,0x88,0x81}};
+  const guid_t acpi1_rsdp_guid =
+      {0xeb9d2d30,0x2d88,0x11d3,{0x9a,0x16,0x00,0x90,0x27,0x3f,0xc1,0x4d}};
 }
 
 namespace efi
@@ -273,6 +278,31 @@ next:
     return SUCCESS;
   }
 
+  static void find_acpi_rsdp(bootinfo_t *bootinfo)
+  {
+    size_t n = system_table->nr_table_entries;
+
+    bootinfo->acpi_rsdp = 0;
+    for(size_t i = 0;i < n;++i)
+    {
+      auto &x = system_table->config_table[i];
+      if(x.guid != acpi2_rsdp_guid)
+        continue;
+      bootinfo->acpi_rsdp = (uintptr_t)x.table;
+      return;
+    }
+    for(size_t i = 0;i < n;++i)
+    {
+      auto &x = system_table->config_table[i];
+      if(x.guid != acpi1_rsdp_guid)
+        continue;
+      bootinfo->acpi_rsdp = (uintptr_t)x.table;
+      return;
+    }
+
+    print("[WARN ] Failed to get the ACPI RSDP from the UEFI firmware.\n");
+  }
+
   static status_t exit_boottime(bootinfo_t *bootinfo,bool &can_exit)
   {
     memory_desc_t *memmap;
@@ -327,6 +357,7 @@ err:
       goto err;
 
     print_memory_map();
+    find_acpi_rsdp(bootinfo);
 
     status = exit_boottime(bootinfo,can_exit);
     if(status_error(status))
