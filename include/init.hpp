@@ -23,6 +23,7 @@ namespace init_order
     enum { ACPI_ACPI   = 1008 };
     enum { IRQ_IOAPIC  = 1009 };
     enum { IRQ_LAPIC   = 1010 };
+    enum { TIME_HPET   = 1011 };
   }
 
   namespace fs

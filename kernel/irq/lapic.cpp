@@ -111,11 +111,11 @@ namespace local_apic
     set_intr_flag();
     writel(1000000000,REG_TIMER_INITIAL_CNT);
 
-    for(;;)
-    {
-      while(!timer->get_flag());
-      log_t()<<"Receive the interrupt of the local APIC timer.\n";
-    }
+    while(!timer->get_flag());
+    log_t()<<"Receive the interrupt of the local APIC timer.\n";
+    log_t()<<"Initialize the local APIC and its timer successfully.\n";
+
+    clear_intr_flag();
 
     return 0;
   }

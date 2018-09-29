@@ -133,18 +133,18 @@ namespace io_apic
   static inline void writel(uint32_t data,unsigned int reg)
   {
     *(volatile uint32_t *)(mmio_address + 0x00) = reg; // IOREGSEL
-    *(volatile uint32_t *)(mmio_address + 0x00) = data; // IOWIN
+    *(volatile uint32_t *)(mmio_address + 0x10) = data; // IOWIN
   }
 
-  static inline uint64_t readq(uint64_t reg)
+  static inline uint64_t readq(unsigned int reg)
   {
     return readl(reg + 0) | ((uint64_t)readl(reg + 1) << 32);
   }
 
-  static inline void writeq(uint64_t data,uint64_t reg)
+  static inline void writeq(uint64_t data,unsigned int reg)
   {
-    writel(reg + 0,(uint32_t)data);
-    writel(reg + 1,data >> 32);
+    writel((uint32_t)data,reg + 0);
+    writel(data >> 32,reg + 1);
   }
 
   static int setup_ioapic(void) INIT_FUNC(kernel,IRQ_IOAPIC);
