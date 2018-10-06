@@ -171,7 +171,7 @@ namespace io_apic
     }
 
     uint64_t attr = REDTBL_HIGH_ACTIVE | REDTBL_FIXED_DELIVERY | REDTBL_EDGE_TRIGGER;
-    attr |= REDTBL_PHYSICAL_DEST | REDTBL_DEST_FIELD(0);
+    attr |= REDTBL_LOGICAL_DEST | REDTBL_DEST_FIELD(0xff);
     for(size_t i = 0;i < nr_irqs;++i)
     {
       uint64_t no_intr = idt::get_free_entry((uint64_t)irq_entry_table[i]);

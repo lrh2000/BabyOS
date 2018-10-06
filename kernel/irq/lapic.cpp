@@ -3,8 +3,10 @@
 #include <debug.hpp>
 #include <memory.hpp>
 #include <intr.hpp>
+#include <time.hpp>
 #include "irq.hpp"
 #include "../cpu/idt.hpp"
+#include "../time/timer.hpp"
 
 namespace local_apic
 {
@@ -69,21 +71,22 @@ namespace local_apic
 
   class local_timer_irq_t :public irq_handler_t
   {
-    volatile bool flag;
+    volatile uint64_t ticks;
   public:
     local_timer_irq_t(void)
-      :irq_handler_t(-irq::LOCAL_TIMER),flag(false)
+      :irq_handler_t(-irq::LOCAL_TIMER),ticks(0)
     {}
 
     virtual bool handle(void) override
     {
-      flag = true;
+      ++ticks;
+      time::local_timer_irq();
       return true;
     }
 
-    bool get_flag(void)
+    uint64_t get_ticks(void)
     {
-      return flag ? (flag = false),true : false;
+      return ticks;
     }
   };
 
@@ -100,22 +103,54 @@ namespace local_apic
            <<&log_t::hex64<<mmio_address<<".\n";
 
     writel(SOFTWARE_ENABLE,REG_SPURIOUS_INTR);
+    writel(DFR_FLAT_MODEL,REG_DEST_FORMAT);
+    writel(LDR_LOGICAL_ID(0x1),REG_LOGICAL_DEST);
 
+    return 0;
+  }
+
+  static int setup_lapic_timer(void) INIT_FUNC(kernel,TIME_LTIMER);
+
+  static int setup_lapic_timer(void)
+  {
     auto no_intr = idt::get_free_entry((uint64_t)irq_entry_table[irq::LOCAL_TIMER]);
-    writel(TIMER_PERIODIC | no_intr,REG_TIMER_INTR);
+    writel(TIMER_ONESHOT | no_intr,REG_TIMER_INTR);
+
+    set_intr_flag();
+    uint64_t ticks = timer_t::global_ticks() + 10;
+    while(timer_t::global_ticks() < ticks);
+    writel(0xffffffff,REG_TIMER_INITIAL_CNT);
+    while(timer_t::global_ticks() < ticks + timer_t::HZ);
+    ticks = readl(REG_TIMER_CURRENT_CNT);
+    clear_intr_flag();
 
     static uint8_t buffer[sizeof(local_timer_irq_t)];
     local_timer_irq_t *timer = new(buffer) local_timer_irq_t;
     timer->enroll();
 
+    ticks = 0xffffffff - ticks;
+    ticks /= timer_t::HZ;
+    writel(TIMER_PERIODIC | no_intr,REG_TIMER_INTR);
+    writel(ticks,REG_TIMER_INITIAL_CNT);
+
     set_intr_flag();
-    writel(1000000000,REG_TIMER_INITIAL_CNT);
-
-    while(!timer->get_flag());
-    log_t()<<"Receive the interrupt of the local APIC timer.\n";
-    log_t()<<"Initialize the local APIC and its timer successfully.\n";
-
+    ticks = timer->get_ticks();
+    while(timer->get_ticks() < ticks + 10);
     clear_intr_flag();
+    log_t()<<"Initialize the local APIC timer successfully.\n";
+
+    set_intr_flag();
+    ticks = timer_t::global_ticks();
+    for(;;)
+    {
+      ticks += timer_t::HZ;
+      while(timer_t::global_ticks() < ticks);
+      auto local_ticks = timer->get_ticks();
+
+      log_t()<<"Global Ticks:"<<ticks<<" Local Ticks:"<<local_ticks<<"\n";
+      log_t()<<"The difference between them is "<<(ticks - local_ticks)<<".\n";
+    }
+
 
     return 0;
   }

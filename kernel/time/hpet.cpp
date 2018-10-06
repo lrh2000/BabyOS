@@ -4,6 +4,8 @@
 #include <debug.hpp>
 #include <init.hpp>
 #include <memory.hpp>
+#include <time.hpp>
+#include "timer.hpp"
 
 namespace hpet
 {
@@ -91,29 +93,19 @@ namespace hpet
 
   class hpet_irq_t :public irq_handler_t
   {
-    volatile bool flag;
   public:
     hpet_irq_t(void)
-      :irq_handler_t(2),flag(false)
+      :irq_handler_t(2)
     {}
 
     bool handle(void) override
     {
-      flag = true;
+      time::global_timer_irq();
       return true;
-    }
-
-    bool get_flag(void)
-    {
-      if(flag) {
-        flag = false;
-        return true;
-      }
-      return false;
     }
   };
 
-  static int setup_hpet(void) INIT_FUNC(kernel,TIME_HPET);
+  static int setup_hpet(void) INIT_FUNC(kernel,TIME_GTIMER);
 
   static int setup_hpet(void)
   {
@@ -124,19 +116,20 @@ namespace hpet
     auto irq = new(buffer) hpet_irq_t;
     irq->enroll();
 
+    uint64_t counter = 1000000000000000ull;
+    counter /= CAP_TICKS_PER_FS(readq(REG_CAP_ID));
+    counter /= timer_t::HZ;
     writeq(CNF_LEGACY_IRQ,REG_CONFIG);
     writeq(0,REG_COUNTER);
     writeq(TIMER_ENABLE | TIMER_PERIODIC | TIMER_SET_VALUE,REG_TIMER_CONFIG(0));
-    writeq(1000000000000000ull / CAP_TICKS_PER_FS(readq(REG_CAP_ID)),REG_TIMER_CMP_VALUE(0));
+    writeq(counter,REG_TIMER_CMP_VALUE(0));
     writeq(CNF_LEGACY_IRQ | CNF_ENABLE,REG_CONFIG);
 
     set_intr_flag();
-
-    for(;;)
-    {
-      while(!irq->get_flag());
-      log_t()<<"Receive an IRQ from the HPET.\n";
-    }
+    auto ticks = timer_t::global_ticks();
+    while(timer_t::global_ticks() < ticks + 10);
+    clear_intr_flag();
+    log_t()<<"Initialize the High Precision Event Timer successfully.\n";
 
     return 0;
   }
