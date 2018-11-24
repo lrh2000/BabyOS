@@ -4,7 +4,11 @@
 #include <debug.hpp>
 #include <memory.hpp>
 #include "irq.hpp"
-#include "../cpu/idt.hpp"
+
+namespace local_apic
+{
+  extern void send_eoi(void);
+}
 
 namespace io_apic
 {
@@ -107,17 +111,18 @@ namespace io_apic
   {
     REDTBL_MASKED          = 0x0000000000010000,
     REDTBL_LEVEL_TRIGGER   = 0x0000000000008000,
-    REDTBL_EDGE_TRIGGER    = 0x0000000000000000,
-    REDTBL_HIGH_ACTIVE     = 0x0000000000000000,
     REDTBL_LOW_ACTIVE      = 0x0000000000002000,
-    REDTBL_PHYSICAL_DEST   = 0x0000000000000000,
     REDTBL_LOGICAL_DEST    = 0x0000000000000800,
-    REDTBL_FIXED_DELIVERY  = 0x0000000000000000,
     REDTBL_LOWPRI_DELIVERY = 0x0000000000000010,
     REDTBL_SMI_DELIVERY    = 0x0000000000000020,
     REDTBL_NMI_DELIVERY    = 0x0000000000000400,
     REDTBL_INIT_DELIVERY   = 0x0000000000000500,
     REDTBL_EXTINT_DELIVERY = 0x0000000000000700,
+    // Default options:
+    // REDTBL_HIGH_ACTIVE
+    // REDTBL_EDGE_TRIGGER
+    // REDTBL_PHYSICAL_DEST
+    // REDTBL_FIXED_DELIVERY
   };
   static inline constexpr uint64_t REDTBL_DEST_FIELD(uint8_t dest)
   {
@@ -147,6 +152,30 @@ namespace io_apic
     writel(data >> 32,reg + 1);
   }
 
+  class global_irq_t :public irq::manager_t
+  {
+  public:
+    global_irq_t(irq_t gsi) :irq::manager_t(gsi) {}
+
+    void send_eoi(void) override;
+    bool enroll(void);
+  };
+
+  void global_irq_t::send_eoi(void)
+  {
+    local_apic::send_eoi();
+  }
+
+  bool global_irq_t::enroll(void)
+  {
+    if(!irq::manager_t::enroll())
+      return false;
+
+    uint64_t attr = REDTBL_LOGICAL_DEST | REDTBL_DEST_FIELD(0xff);
+    writeq(attr | native_intr_index(),IOREDTBL(irq_index()));
+    return true;
+  }
+
   static int setup_ioapic(void) INIT_FUNC(kernel,IRQ_IOAPIC);
 
   static int setup_ioapic(void)
@@ -163,20 +192,20 @@ namespace io_apic
     nr_irqs = (ver >> 16) & 0xff;
     ++nr_irqs;
 
-    // irq::IOAPIC_START == Global System Interrupt Base == 0
-    if(nr_irqs > irq::IOAPIC_END + 1) {
+    if(nr_irqs > irq::GSI_MAX_COUNT) {
       log_t(log_t::WARNING)<<"The I/O APIC has "<<nr_irqs<<" IRQs,which are too many."
-                      "So only first "<<irq::IOAPIC_END + 1<<" IRQs will be enabled.\n";
-      nr_irqs = irq::IOAPIC_END + 1;
+                      "So only first "<<irq::GSI_MAX_COUNT<<" IRQs will be enabled.\n";
+      nr_irqs = irq::GSI_MAX_COUNT;
     }
 
-    uint64_t attr = REDTBL_HIGH_ACTIVE | REDTBL_FIXED_DELIVERY | REDTBL_EDGE_TRIGGER;
-    attr |= REDTBL_LOGICAL_DEST | REDTBL_DEST_FIELD(0xff);
+    static uint8_t irqs[sizeof(global_irq_t) * irq::GSI_MAX_COUNT];
     for(size_t i = 0;i < nr_irqs;++i)
     {
-      uint64_t no_intr = idt::get_free_entry((uint64_t)irq_entry_table[i]);
-      writeq(attr | no_intr,IOREDTBL(i));
+      global_irq_t *gsi = new(irqs + i * sizeof(global_irq_t)) global_irq_t(i);
+      if(!gsi->enroll())
+        log_t(log_t::WARNING)<<"Failed to initialize IRQ"<<i<<".\n";
     }
+
     log_t()<<"I/O APIC version: 0x"<<&log_t::hex<<(ver & 0xff)<<"\n";
     log_t()<<"Initialize the I/O APIC with "<<nr_irqs<<" IRQs successfully.\n";
 

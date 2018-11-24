@@ -1,3 +1,4 @@
+#pragma once
 #include <env.hpp>
 
 struct intr_stack_t
@@ -29,6 +30,7 @@ public:
 
   //static irq_t isa_legacy_irq(irq_t irq);
 private:
+  //unsigned int flags;
   irq_t irq;
   bool registered;
 };

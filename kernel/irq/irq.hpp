@@ -1,14 +1,48 @@
 #pragma once
+#include <intr.hpp>
 
 namespace irq
 {
-  enum { TOTAL = 25 };
+  enum { GSI_MAX_COUNT = 24 };
 
-  enum { IOAPIC_START = 0  };
-  enum { IOAPIC_END   = 23 };
-  enum { LOCAL_TIMER  = 24 };
+  class manager_t
+  {
+  public:
+    manager_t(irq_t gsi = -1)
+    {
+      irq_idx = gsi;
+    }
 
-  void send_eoi(void);
+    irq_t irq_index(void)
+    {
+      return irq_idx;
+    }
+
+    bool register_handler(irq_handler_t *handler);
+    void unregister_handler(irq_handler_t *handler);
+    bool handle_interrupt(void);
+
+    bool enroll(void);
+    //void unenroll(void) = delete;
+
+    //~manager_t(void) = delete;
+  protected:
+    virtual void send_eoi(void) = 0;
+    //virtual void set_masked(bool masked) = 0;
+    //virtual void set_triggered_mode(bool level1_edge0) = 0;
+
+    unsigned int native_intr_index(void)
+    {
+      return intr_idx;
+    }
+  private:
+    //unsigned int flags;
+    unsigned int intr_idx;
+    irq_t irq_idx;
+    irq_handler_t *handler;
+  };
+
+  //TODO:
+  // class percpu_manager_t;
 }
 
-extern "C" void *irq_entry_table[irq::TOTAL];

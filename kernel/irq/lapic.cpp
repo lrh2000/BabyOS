@@ -5,7 +5,6 @@
 #include <intr.hpp>
 #include <time.hpp>
 #include "irq.hpp"
-#include "../cpu/idt.hpp"
 #include "../time/timer.hpp"
 
 namespace local_apic
@@ -25,8 +24,8 @@ namespace local_apic
   {
     SOFTWARE_ENABLE = 0x00000100,
 
-    TIMER_ONESHOT   = 0x00000000,
     TIMER_PERIODIC  = 0x00020000,
+    // Default option: TIMER_ONESHOT
 
     INTR_MASKED     = 0x00010000,
 
@@ -69,12 +68,40 @@ namespace local_apic
     return 0;
   }
 
+  void send_eoi(void)
+  {
+    local_apic::writel(0,local_apic::REG_EOI);
+  }
+
+  class local_irq_t :public irq::manager_t
+  {
+  public:
+    local_irq_t(unsigned int intr_reg) :intr_reg(intr_reg) {}
+
+    virtual void send_eoi() override
+    {
+      ::local_apic::send_eoi();
+    }
+
+    bool enroll(void);
+  private:
+    unsigned int intr_reg;
+  };
+
+  bool local_irq_t::enroll(void)
+  {
+    if(!irq::manager_t::enroll())
+      return false;
+    writel(INTR_MASKED | native_intr_index(),intr_reg);
+    return true;
+  }
+
   class local_timer_irq_t :public irq_handler_t
   {
     volatile uint64_t ticks;
   public:
-    local_timer_irq_t(void)
-      :irq_handler_t(-irq::LOCAL_TIMER),ticks(0)
+    local_timer_irq_t(irq_t irq)
+      :irq_handler_t(irq),ticks(0)
     {}
 
     virtual bool handle(void) override
@@ -113,8 +140,14 @@ namespace local_apic
 
   static int setup_lapic_timer(void)
   {
-    auto no_intr = idt::get_free_entry((uint64_t)irq_entry_table[irq::LOCAL_TIMER]);
-    writel(TIMER_ONESHOT | no_intr,REG_TIMER_INTR);
+    static uint8_t timer_irq[sizeof(local_irq_t)];
+    local_irq_t *manager = new(timer_irq) local_irq_t(REG_TIMER_INTR);
+    manager->enroll();
+
+    uint32_t reg_val = readl(REG_TIMER_INTR);
+    reg_val &= ~INTR_MASKED;
+    reg_val &= ~TIMER_PERIODIC;
+    writel(reg_val,REG_TIMER_INTR);
 
     set_intr_flag();
     uint64_t ticks = timer_t::global_ticks() + 10;
@@ -125,12 +158,12 @@ namespace local_apic
     clear_intr_flag();
 
     static uint8_t buffer[sizeof(local_timer_irq_t)];
-    local_timer_irq_t *timer = new(buffer) local_timer_irq_t;
+    local_timer_irq_t *timer = new(buffer) local_timer_irq_t(manager->irq_index());
     timer->enroll();
 
     ticks = 0xffffffff - ticks;
     ticks /= timer_t::HZ;
-    writel(TIMER_PERIODIC | no_intr,REG_TIMER_INTR);
+    writel(reg_val | TIMER_PERIODIC,REG_TIMER_INTR);
     writel(ticks,REG_TIMER_INITIAL_CNT);
 
     set_intr_flag();
@@ -151,15 +184,6 @@ namespace local_apic
       log_t()<<"The difference between them is "<<(ticks - local_ticks)<<".\n";
     }
 
-
     return 0;
-  }
-}
-
-namespace irq
-{
-  void send_eoi(void)
-  {
-    local_apic::writel(0,local_apic::REG_EOI);
   }
 }
