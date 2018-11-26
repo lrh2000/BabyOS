@@ -18,11 +18,11 @@ namespace irq
       return irq_idx;
     }
 
-    bool register_handler(irq_handler_t *handler);
+    errno_t register_handler(irq_handler_t *handler);
     void unregister_handler(irq_handler_t *handler);
-    bool handle_interrupt(void);
+    errno_t handle_interrupt(void);
 
-    bool enroll(void);
+    errno_t enroll(void);
     //void unenroll(void) = delete;
 
     //~manager_t(void) = delete;
@@ -45,4 +45,3 @@ namespace irq
   //TODO:
   // class percpu_manager_t;
 }
-

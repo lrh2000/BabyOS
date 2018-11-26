@@ -1,5 +1,6 @@
 #pragma once
 #include <env.hpp>
+#include <errno.hpp>
 
 class acpi_parser_t
 {
@@ -29,10 +30,10 @@ public:
     :signature(signature)
   {}
 
-  bool run(void);
+  errno_t run(void);
 
   // virtual bool identify(const table_header_t *table);
-  virtual bool parse(const table_header_t *table) = 0;
+  virtual errno_t parse(const table_header_t *table) = 0;
 private:
   uint32_t signature;
 };

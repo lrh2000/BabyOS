@@ -83,17 +83,17 @@ namespace local_apic
       ::local_apic::send_eoi();
     }
 
-    bool enroll(void);
+    errno_t enroll(void);
   private:
     unsigned int intr_reg;
   };
 
-  bool local_irq_t::enroll(void)
+  errno_t local_irq_t::enroll(void)
   {
-    if(!irq::manager_t::enroll())
-      return false;
+    if(errno_t ret = irq::manager_t::enroll())
+      return ret;
     writel(INTR_MASKED | native_intr_index(),intr_reg);
-    return true;
+    return 0;
   }
 
   class local_timer_irq_t :public irq_handler_t
@@ -104,11 +104,11 @@ namespace local_apic
       :irq_handler_t(irq),ticks(0)
     {}
 
-    virtual bool handle(void) override
+    virtual irqret_t handle(void) override
     {
       ++ticks;
       time::local_timer_irq();
-      return true;
+      return IRQRET_HANDLED;
     }
 
     uint64_t get_ticks(void)

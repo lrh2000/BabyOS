@@ -87,15 +87,16 @@ namespace acpi
   }
 }
 
-bool acpi_parser_t::run(void)
+errno_t acpi_parser_t::run(void)
 {
+  errno_t ret;
   acpi::header_t *header;
   for(size_t i = 0;(header = acpi::basic_info.get_entry(i));++i)
   {
     if(header->signature != signature)
       continue;
-    if(!this->parse(header))
-      return false;
+    if((ret = this->parse(header)))
+      return ret;
   }
-  return true;
+  return 0;
 }

@@ -27,19 +27,19 @@ namespace hpet
       :acpi_parser_t(0x54455048 /* HPET */)
     {}
 
-    bool parse(const table_header_t *header) override
+    errno_t parse(const table_header_t *header) override
     {
       auto table = (const hpet_table_t *)header;
 
       if(table->hpet_num) {
         log_t()<<"Dectected HPET"<<table->hpet_num<<"."
           "Mutiple HPETs are not supported,so ignore it.\n";
-        return true;
+        return 0;
       }
       log_t()<<"Dectected HPET0,MMIO Address:0x"<<&log_t::hex64<<
         (mmio_address = table->base_addr.address)<<".\n";
 
-      return true;
+      return 0;
     }
   };
 
@@ -98,10 +98,10 @@ namespace hpet
       :irq_handler_t(2)
     {}
 
-    bool handle(void) override
+    irqret_t handle(void) override
     {
       time::global_timer_irq();
-      return true;
+      return IRQRET_HANDLED;
     }
   };
 

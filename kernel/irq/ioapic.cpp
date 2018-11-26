@@ -59,12 +59,12 @@ namespace io_apic
       :acpi_parser_t(0x43495041 /* 'APIC' */)
     {}
 
-    virtual bool parse(const table_header_t *table) override;
+    virtual errno_t parse(const table_header_t *table) override;
   };
 
   typedef acpi_parser_t::table_header_t acpi_header_t;
 
-  bool madt_parser_t::parse(const acpi_header_t *header)
+  errno_t madt_parser_t::parse(const acpi_header_t *header)
   {
     auto madt = (const madt_t *)header;
     auto sz_left = header->length - sizeof(*madt);
@@ -93,7 +93,7 @@ namespace io_apic
                <<&log_t::hex64<<mmio_address<<".\n";
       } // TODO: Interrupt Source Override
     }
-    return true;
+    return 0;
   }
 
   enum
@@ -158,7 +158,7 @@ namespace io_apic
     global_irq_t(irq_t gsi) :irq::manager_t(gsi) {}
 
     void send_eoi(void) override;
-    bool enroll(void);
+    errno_t enroll(void);
   };
 
   void global_irq_t::send_eoi(void)
@@ -166,14 +166,14 @@ namespace io_apic
     local_apic::send_eoi();
   }
 
-  bool global_irq_t::enroll(void)
+  errno_t global_irq_t::enroll(void)
   {
-    if(!irq::manager_t::enroll())
-      return false;
+    if(errno_t ret = irq::manager_t::enroll())
+      return ret;
 
     uint64_t attr = REDTBL_LOGICAL_DEST | REDTBL_DEST_FIELD(0xff);
     writeq(attr | native_intr_index(),IOREDTBL(irq_index()));
-    return true;
+    return 0;
   }
 
   static int setup_ioapic(void) INIT_FUNC(kernel,IRQ_IOAPIC);
@@ -202,7 +202,7 @@ namespace io_apic
     for(size_t i = 0;i < nr_irqs;++i)
     {
       global_irq_t *gsi = new(irqs + i * sizeof(global_irq_t)) global_irq_t(i);
-      if(!gsi->enroll())
+      if(gsi->enroll())
         log_t(log_t::WARNING)<<"Failed to initialize IRQ"<<i<<".\n";
     }
 
