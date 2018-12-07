@@ -10,7 +10,6 @@ irq_entry_table:
   .quad irq_entry_##i; \
   .section ".text","ax"; \
 irq_entry_##i##:; \
-  pushq $~0; \
   pushq $i; \
   jmp irq_entry
 
@@ -57,7 +56,7 @@ irq_entry:
   pushq %r14
   pushq %r15
 
-  leaq (%rsp),%rdi
+  movq 120(%rsp),%rdi
   callq do_interrupt
 
   popq %r15
@@ -75,5 +74,5 @@ irq_entry:
   popq %rbx
   popq %rax
   popq %rbp
-  addq $16,%rsp
+  addq $8,%rsp
   iretq

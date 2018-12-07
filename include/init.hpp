@@ -25,6 +25,7 @@ namespace init_order
     enum { IRQ_LAPIC   = 1010 };
     enum { TIME_GTIMER = 1011 };
     enum { TIME_LTIMER = 1012 };
+    enum { TASK_TASK   = 1013 };
   }
 
   namespace fs

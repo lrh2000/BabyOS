@@ -1,15 +1,18 @@
 #include <intr.hpp>
 #include <debug.hpp>
+#include "idt.hpp"
+
+using exception_stack_t = cpu::exception_stack_t;
 
 namespace exceptions
 {
-  typedef bool (*handler_t)(intr_stack_t *);
+  typedef bool (*handler_t)(exception_stack_t *);
   enum { NO_INTR_START = 0,NO_INTR_END = 31 };
   enum { NR_EXCEPTIONS = NO_INTR_END - NO_INTR_START + 1};
 
-  // extern bool page_fault(intr_stack_t *);
+  // extern bool page_fault(exception_stack_t *);
 
-  bool default_handler(intr_stack_t *)
+  bool default_handler(exception_stack_t *)
   {
     return false;
   }
@@ -85,9 +88,9 @@ namespace exceptions
   };
 }
 
-extern "C" void do_exception(intr_stack_t *data)
+extern "C" void do_exception(exception_stack_t *data)
 {
-  uint64_t idx = data->no_intr - exceptions::NO_INTR_START;
+  uint64_t idx = data->no_excep - exceptions::NO_INTR_START;
   exceptions::handler_t handler = exceptions::handlers[idx];
   if((*handler)(data))
     return;

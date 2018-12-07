@@ -78,7 +78,7 @@ namespace local_apic
   public:
     local_irq_t(unsigned int intr_reg) :intr_reg(intr_reg) {}
 
-    virtual void send_eoi() override
+    virtual void send_eoi(void) override
     {
       ::local_apic::send_eoi();
     }
@@ -95,27 +95,6 @@ namespace local_apic
     writel(INTR_MASKED | native_intr_index(),intr_reg);
     return 0;
   }
-
-  class local_timer_irq_t :public irq_handler_t
-  {
-    volatile uint64_t ticks;
-  public:
-    local_timer_irq_t(irq_t irq)
-      :irq_handler_t(irq),ticks(0)
-    {}
-
-    virtual irqret_t handle(void) override
-    {
-      ++ticks;
-      time::local_timer_irq();
-      return IRQRET_HANDLED;
-    }
-
-    uint64_t get_ticks(void)
-    {
-      return ticks;
-    }
-  };
 
   static int setup_lapic(void) INIT_FUNC(kernel,IRQ_LAPIC);
 
@@ -157,8 +136,7 @@ namespace local_apic
     ticks = readl(REG_TIMER_CURRENT_CNT);
     clear_intr_flag();
 
-    static uint8_t buffer[sizeof(local_timer_irq_t)];
-    local_timer_irq_t *timer = new(buffer) local_timer_irq_t(manager->irq_index());
+    auto timer = time::local_timer_irq_t::get_instance(manager->irq_index());
     timer->enroll();
 
     ticks = 0xffffffff - ticks;
@@ -174,7 +152,7 @@ namespace local_apic
 
     set_intr_flag();
     ticks = timer_t::global_ticks();
-    for(;;)
+    for(unsigned int x = 0;x < 3;++x)
     {
       ticks += timer_t::HZ;
       while(timer_t::global_ticks() < ticks);

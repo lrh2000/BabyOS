@@ -3,7 +3,6 @@
 #include <acpi.hpp>
 #include <debug.hpp>
 #include <init.hpp>
-#include <memory.hpp>
 #include <time.hpp>
 #include "timer.hpp"
 
@@ -91,20 +90,6 @@ namespace hpet
     *(volatile uint64_t *)(mmio_address + reg) = data;
   }
 
-  class hpet_irq_t :public irq_handler_t
-  {
-  public:
-    hpet_irq_t(void)
-      :irq_handler_t(2)
-    {}
-
-    irqret_t handle(void) override
-    {
-      time::global_timer_irq();
-      return IRQRET_HANDLED;
-    }
-  };
-
   static int setup_hpet(void) INIT_FUNC(kernel,TIME_GTIMER);
 
   static int setup_hpet(void)
@@ -112,8 +97,7 @@ namespace hpet
     hpet_parser_t parser;
     parser.run();
 
-    static uint8_t buffer[sizeof(hpet_irq_t)];
-    auto irq = new(buffer) hpet_irq_t;
+    auto irq = time::global_timer_irq_t::get_instance(2);
     irq->enroll();
 
     uint64_t counter = 1000000000000000ull;

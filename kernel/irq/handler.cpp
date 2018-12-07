@@ -1,4 +1,5 @@
 #include <intr.hpp>
+#include <task.hpp>
 #include "irq.hpp"
 #include "../cpu/idt.hpp"
 
@@ -12,8 +13,10 @@ namespace irq
   static manager_t *gsi_managers[GSI_MAX_COUNT];
   static manager_t *osi_managers[OSI_MAX_COUNT];
   static size_t osi_real_count;
+  static unsigned int cnt_nests;
+  bool need_schedule;
 
-  manager_t **get_manager(irq_t irq)
+  static manager_t **get_manager(irq_t irq)
   {
     size_t cnt;
     manager_t **managers;
@@ -71,12 +74,15 @@ namespace irq
   }
 }
 
-extern "C" void do_interrupt(intr_stack_t *data)
+extern "C" void do_interrupt(uint64_t no_irq)
 {
-  if(data->no_intr < irq::GSI_MAX_COUNT)
-    irq::gsi_managers[data->no_intr]->handle_interrupt();
+  ++irq::cnt_nests;
+  if(no_irq < irq::GSI_MAX_COUNT)
+    irq::gsi_managers[no_irq]->handle_interrupt();
   else
-    irq::osi_managers[data->no_intr - irq::GSI_MAX_COUNT]->handle_interrupt();
+    irq::osi_managers[no_irq - irq::GSI_MAX_COUNT]->handle_interrupt();
+  if(--irq::cnt_nests == 0 && irq::need_schedule)
+    task_t::schedule(),irq::need_schedule = false;
   return;
 }
 

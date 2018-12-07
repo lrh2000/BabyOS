@@ -5,6 +5,12 @@ namespace irq
 {
   enum { GSI_MAX_COUNT = 24 };
 
+  extern bool need_schedule;
+  inline void delayed_task_schedule(void)
+  {
+    need_schedule = true;
+  }
+
   class manager_t
   {
   public:
