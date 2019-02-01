@@ -19,17 +19,8 @@ public:
   struct setbase_t { unsigned int base; };
 
 public:
-  log_t(log_level_t lvl = log_t::INFO)
-    :loglvl(lvl),base(10),width(0)
-  {
-    if(lvl != log_t::NONE)
-      *this<<loglvl_to_string[lvl];
-  }
-  ~log_t(void)
-  {
-    if(console)
-      update();
-  }
+  log_t(log_level_t lvl = log_t::INFO);
+  ~log_t(void);
 
   void hex(void);
   void hex64(void);
@@ -39,17 +30,28 @@ public:
   log_t &operator <<(void (log_t::*func)(void)) { (this->*func)();return *this; }
 
   log_t &operator <<(const char *s);
-  log_t &operator <<(unsigned long num);
+  log_t &operator <<(unsigned long num)
+  {
+    char s[21];
+    int i = 20;
+    int figure = this->width;
+
+    s[i--] = 0;
+    do
+      ((s[i--] = num % base + '0') <= '9') ? 0 : (s[i + 1] += 'A' - '0' - 10);
+    while((num /= base) | (figure && --figure));
+
+    return *this<<s + i + 1;
+  }
+
 private:
   log_level_t loglvl;
-  unsigned int base,width;
+  unsigned int base = 10,width = 0;
 public:
   static void set_console(console_t *console);
 
   static setbase_t setbase(unsigned int base) { return (setbase_t){base}; }
   static setw_t setw(unsigned int width) { return (setw_t){width}; }
-private:
-  static void update(void);
 private:
   static char buffer[4096];
   static size_t buffer_current;

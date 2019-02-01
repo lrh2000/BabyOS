@@ -2,6 +2,7 @@
 #include <memory.hpp>
 #include <debug.hpp>
 #include <init.hpp>
+#include <locks.hpp>
 #include <task.hpp>
 #include "task.hpp"
 #include "../irq/irq.hpp"
@@ -35,6 +36,7 @@ struct task_reg_t
       "pushq %%r15\n\t" \
       "pushq %%rbp\n\t" \
       "movq %%rsp," rsp "\n\t"
+  // WARNING: %rax is modified.
 
 #define LOAD_REGISTERS(rsp) \
       "movq " rsp ",%%rsp\n\t" \
@@ -65,7 +67,9 @@ struct task_private_t
 };
 
 list_head_t<task_t,&task_t::list_node> task_private_t::tasks;
-task_t *task_t::_current;
+volatile size_t task_t::preempt_count;
+task_t *volatile task_t::_current;
+static spinlock_noirq_t task_lock;
 
 void task_private_t::local_timer_tick(void)
 {
@@ -75,13 +79,20 @@ void task_private_t::local_timer_tick(void)
   ++task->current_ticks;
   ++task->total_ticks;
 
+  if(task_t::preempt_count || spinlock_t::in_spinlock)
+    return;
+  if(task->state != task_t::STATE_RUNNING)
+    return;
+
   if(task->total_ticks > timer_t::HZ / 20)
     irq::delayed_task_schedule();
 }
 
 void task_private_t::first_schedule(void)
 {
+  task_lock.lock();
   task_t *task = tasks.first();
+  task->state = task_t::STATE_RUNNING;
 
   task_t::_current = task;
   asm volatile(
@@ -94,6 +105,8 @@ void task_private_t::first_schedule(void)
 
 void task_private_t::task_entry(task_t *task)
 {
+  task_lock.unlock();
+
   task->run();
   for(;;);
 }
@@ -107,25 +120,59 @@ task_t::task_t(void)
 {
   total_ticks = current_ticks = 0;
   stack_ptr = (uintptr_t)this + 3 * PAGE_SIZE;
+  state = STATE_NOT_STARTED;
 }
 
 void task_t::start(void)
 {
+  // TODO: assert(state == STATE_NOT_STARTED);
+
   stack_ptr -= sizeof(task_reg_t);
   task_reg_t *reg = (task_reg_t *)stack_ptr;
   reg->rdi = (uintptr_t)this;
   reg->rip = (uintptr_t)&task_private_t::task_entry;
+  state = STATE_SLEEPING;
 
-  irqstat_t irqf = save_clear_intr_flag();
-  task_private_t::tasks.insert(*this);
-  restore_intr_flag(irqf);
+  wake_up();
+}
+
+void task_t::wake_up(void)
+{
+  irqstat_t irqf;
+  task_lock.lock(irqf);
+
+  switch(state)
+  {
+  case STATE_WILL_SLEEP:
+    state = STATE_RUNNING;
+    break;
+  case STATE_SLEEPING:
+    task_private_t::tasks.insert(*this);
+    state = STATE_READY;
+    break;
+  default:
+    break;
+  }
+
+  task_lock.unlock(irqf);
+}
+
+void task_t::sleep(void)
+{
+  irqstat_t irqf;
+  task_lock.lock(irqf);
+
+  current()->state = STATE_WILL_SLEEP;
+
+  task_lock.unlock(irqf);
 }
 
 void task_t::schedule(void)
 {
   task_t *older,*newer;
+  irqstat_t irqf;
+  task_lock.lock(irqf);
   older = task_t::current();
-  irqstat_t irqf = save_clear_intr_flag();
 
   newer = task_private_t::tasks.next(*older);
   if(!newer)
@@ -133,8 +180,22 @@ void task_t::schedule(void)
 
   older->current_ticks = 0;
   newer->current_ticks = 1;
-  _current = newer;
+  switch(older->state)
+  {
+  case STATE_RUNNING:
+    older->state = STATE_READY;
+    break;
+  case STATE_WILL_SLEEP:
+    older->list_node.remove();
+    older->state = STATE_SLEEPING;
+    break;
+  default:
+    // TODO: assert(0);
+    break;
+  }
+  newer->state = STATE_RUNNING;
 
+  _current = newer;
   asm volatile(
       STORE_REGISTERS("0f(%%rip)","(%0)")
       LOAD_REGISTERS("(%1)")
@@ -144,37 +205,29 @@ void task_t::schedule(void)
       : "memory","rax"
     );
 
-  restore_intr_flag(irqf);
+  task_lock.unlock(irqf);
 }
 
 namespace task
 {
-  class counter_t :public task_t
+  class happy_task_t :public task_t
   {
   public:
-    counter_t(unsigned int id)
-      :id(id),count(0)
+    happy_task_t(bool type)
+      :type(type)
     {}
   protected:
     void run(void) override;
   private:
-    unsigned int id;
-    unsigned int count;
+    bool type;
   };
 
-  void counter_t::run(void)
+  void happy_task_t::run(void)
   {
-    log_t()<<"Counter "<<id<<" started.\n";
-    set_intr_flag();
     for(;;)
     {
       asm volatile("hlt");
-      ++count;
-      if(!(count % 1000)) {
-        clear_intr_flag();
-        log_t()<<"Counter "<<id<<":count="<<count<<"\n";
-        set_intr_flag();
-      }
+      log_t()<<(type ? "Happy New Year!\n" : "Happy Spring Festival!\n");
     }
   }
 
@@ -183,12 +236,13 @@ namespace task
   static int setup_task(void)
   {
     new(&task_private_t::tasks) typeof(task_private_t::tasks);
+    new(&task_lock) typeof(task_lock);
 
-    counter_t *counter1 = new counter_t(1);
-    counter_t *counter2 = new counter_t(2);
+    happy_task_t *happy_task1 = new happy_task_t(true);
+    happy_task_t *happy_task2 = new happy_task_t(false);
 
-    counter1->start();
-    counter2->start();
+    happy_task1->start();
+    happy_task2->start();
 
     task_private_t::first_schedule();
 

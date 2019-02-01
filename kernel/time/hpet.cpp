@@ -1,4 +1,5 @@
 #include <env.hpp>
+#include <asm.hpp>
 #include <intr.hpp>
 #include <acpi.hpp>
 #include <debug.hpp>

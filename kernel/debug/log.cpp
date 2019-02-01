@@ -2,62 +2,55 @@
 #include <video.hpp>
 #include <init.hpp>
 #include <boot.hpp>
+#include <locks.hpp>
 
 char log_t::buffer[4096];
 size_t log_t::buffer_current;
 console_t *log_t::console;
+mutex_t log_lock;
+
+log_t::log_t(log_level_t lvl)
+    :loglvl(lvl)
+{
+  log_lock.lock();
+  if(lvl != log_t::NONE)
+    *this<<loglvl_to_string[lvl];
+}
+
+log_t::~log_t(void)
+{
+  if(console)
+    console->update();
+  log_lock.unlock();
+}
 
 log_t &log_t::operator <<(const char *s)
 {
-  while(*s && buffer_current < sizeof(buffer))
-    buffer[buffer_current++] = *s++;
+  if(console)
+    console->print(s);
+  else
+    while(*s && buffer_current < sizeof(buffer))
+      buffer[buffer_current++] = *s++;
   return *this;
 }
 
-log_t &log_t::operator <<(unsigned long num)
-{
-  char s[21];
-  int i = 20;
-  int figure = this->width;
-
-  s[i--] = 0;
-  do
-    ((s[i--] = num % base + '0') <= '9') ? 0 : (s[i + 1] += 'A' - '0' - 10);
-  while((num /= base) | (figure && --figure));
-
-  return *this<<s + i + 1;
-}
-
+// NOTE: Now be only able to called during the system initialization.
 void log_t::set_console(console_t *console)
 {
+  if(console) {
+    console->print("Kernel Log:The OS kernel log will be attached to this console.\n");
+    if(buffer_current) {
+      console->print("Kernel Log: ------------ Begin of Saved History Log ------------\n");
+      if(buffer_current >= sizeof(buffer))
+        buffer[sizeof(buffer) - 1] = 0;
+      console->print(buffer);
+      console->print("Kernel Log: ------------- End of Saved History Log -------------\n");
+      buffer_current = 0;
+    }
+    console->update();
+  }
+
   log_t::console = console;
-  if(!console)
-    return;
-
-  console->print("Kernel Log:The future OS kernel log will be printed on this console.\n");
-  if(buffer_current) {
-    console->print("Kernel Log:Some of the past OS kernel log will be printed below.\n");
-    update();
-    console->print("Kernel Log:The past OS kernel log has been printed above.\n");
-    console->update();
-  }
-}
-
-void log_t::update(void)
-{
-  if(buffer_current >= sizeof(buffer)) {
-    buffer[sizeof(buffer) - 1] = 0;
-    console->print(buffer);
-    console->print("[This message is too long to be contained in log_t::buffer,"
-                        "the rest of the message is omitted.]\n");
-    buffer_current = 0;
-    console->update();
-    return;
-  }
-  buffer[buffer_current] = '\0';
-  console->print(buffer);
-  buffer_current = 0;
-  console->update();
 }
 
 namespace dbglog
